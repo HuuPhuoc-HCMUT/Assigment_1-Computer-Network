@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2P Chat UI (Mock)</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+  /* --- Layout --- */
+  .sidebar {
+    width: 260px;
+    background: #2b3a42;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 1px solid #3a4a52;
+  }
+  .sidebar-header button {
+    background: #3a4a52;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .chat-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .chat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+  }
+  .chat-item:hover { background: #36464f; }
+  .chat-item img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  .chat-info {
+    flex: 1;
+  }
+  .chat-info .name {
+    font-weight: 500;
+  }
+  .chat-info .last {
+    font-size: 12px;
+    color: #bbb;
+  }
+  .chat-time {
+    font-size: 11px;
+    color: #aaa;
+  }
+
+  /* --- Main Chat --- */
+  .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f1f1f1;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+  }
+  .chat-header {
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chat-header .title {
+    font-weight: 600;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg {
+    max-width: 60%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    position: relative;
+    background: #fff;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+  }
+  .msg.sent {
+    align-self: flex-end;
+    background: #dcf8c6;
+  }
+  .msg .meta {
+    font-size: 10px;
+    color: #888;
+    margin-top: 4px;
+    text-align: right;
+  }
+  .chat-input {
+    display: flex;
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #ccc;
+  }
+  .chat-input input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+  }
+  .chat-input button {
+    margin-left: 10px;
+    background: #0084ff;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+
+  /* --- People panel --- */
+  .people {
+    width: 220px;
+    background: #fafafa;
+    border-left: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+  }
+  .people-header {
+    font-weight: 600;
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+  .person {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    border-bottom: 1px solid #eee;
+  }
+  .person img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+  .person-info .name {
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .person-info .status {
+    font-size: 12px;
+    color: #777;
+  }
+
+  /* --- Modal --- */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+  }
+  .modal {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 300px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+  }
+  .modal h3 { margin-top: 0; }
+  .modal label {
+    display: block;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .modal input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  .modal-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .modal button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .modal .ok { background: #0078d4; color: #fff; }
+  .modal .cancel { background: #ccc; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <span>Shreyas</span>
+    <button id="btnAdd">+</button>
+  </div>
+  <div class="chat-list" id="chatList">
+    <div class="chat-item active">
+      <img src="https://placekitten.com/60/60" alt="">
+      <div class="chat-info">
+        <div class="name">Koala</div>
+        <div class="last">typing...</div>
+      </div>
+      <div class="chat-time">12:15</div>
+    </div>
+    <div class="chat-item">
+      <img src="https://placebear.com/60/60" alt="">
+      <div class="chat-info">
+        <div class="name">Friends</div>
+        <div class="last">Last message...</div>
+      </div>
+      <div class="chat-time">11:50</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main chat -->
+<div class="chat-main">
+  <div class="chat-header">
+    <div class="title">Koala</div>
+  </div>
+
+  <div class="chat-messages" id="chatBox">
+    <div class="msg recv">
+      <div>Hey! Let's connect!</div>
+      <div class="meta">Koala • 12:14 AM</div>
+    </div>
+    <div class="msg sent">
+      <div>Sure! Hi Koala 👋</div>
+      <div class="meta">You • 12:15 AM</div>
+    </div>
+  </div>
+
+  <div class="chat-input">
+    <input type="text" id="msgInput" placeholder="Nhập tin nhắn...">
+    <button id="sendBtn">Gửi</button>
+  </div>
+</div>
+
+<!-- People -->
+<div class="people">
+  <div class="people-header">People</div>
+  <div class="person">
+    <img src="https://placekitten.com/40/40" alt="">
+    <div class="person-info">
+      <div class="name">Shreyas</div>
+      <div class="status">Push the limits!</div>
+    </div>
+  </div>
+  <div class="person">
+    <img src="https://placekitten.com/41/41" alt="">
+    <div class="person-info">
+      <div class="name">Koala</div>
+      <div class="status">Hanging out...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal thêm người -->
+<div class="modal-backdrop" id="modalAdd">
+  <div class="modal">
+    <h3>Thêm người / peer mới</h3>
+    <label>Tên hiển thị</label>
+    <input type="text" id="peerName" placeholder="VD: Alice">
+    <label>ID / Thông tin kỹ thuật</label>
+    <input type="text" id="peerInfo" placeholder="VD: peer-id hoặc địa chỉ...">
+    <div class="modal-actions">
+      <button class="cancel" id="cancelAdd">Hủy</button>
+      <button class="ok" id="confirmAdd">Thêm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const chatBox = document.getElementById("chatBox");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+
+  sendBtn.addEventListener("click", sendMessage);
+  msgInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    const msg = document.createElement("div");
+    msg.className = "msg sent";
+    msg.innerHTML = `<div>${text}</div><div class="meta">You • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    msgInput.value = "";
+
+    // Fake reply
+    setTimeout(() => {
+      const reply = document.createElement("div");
+      reply.className = "msg recv";
+      reply.innerHTML = `<div>Koala received: ${text}</div><div class="meta">Koala • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+      chatBox.appendChild(reply);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }, 800);
+  }
+
+  // Modal logic
+  const modal = document.getElementById("modalAdd");
+  const btnAdd = document.getElementById("btnAdd");
+  const cancelAdd = document.getElementById("cancelAdd");
+  const confirmAdd = document.getElementById("confirmAdd");
+
+  btnAdd.onclick = () => modal.style.display = "flex";
+  cancelAdd.onclick = () => modal.style.display = "none";
+  confirmAdd.onclick = () => {
+    const name = document.getElementById("peerName").value.trim();
+    const info = document.getElementById("peerInfo").value.trim();
+    if (!name) return alert("Vui lòng nhập tên.");
+    addPeer(name, info);
+    modal.style.display = "none";
+  };
+
+  function addPeer(name, info) {
+    const list = document.getElementById("chatList");
+    const item = document.createElement("div");
+    item.className = "chat-item";
+    item.innerHTML = `
+      <img src="https://placekitten.com/${40 + Math.floor(Math.random()*10)}/${40 + Math.floor(Math.random()*10)}" alt="">
+      <div class="chat-info">
+        <div class="name">${name}</div>
+        <div class="last">${info || 'New peer added'}</div>
+      </div>
+      <div class="chat-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+    `;
+    list.appendChild(item);
+  }
+</script>
+</body>
+</html>

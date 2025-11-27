@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P2P Chat UI</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    height: 100vh;
+    display: flex;
+    background-color: #f6f6f6;
+  }
+
+  /* --- Cột danh sách chat --- */
+  .sidebar {
+    width: 240px;
+    background-color: #24313f;
+    color: white;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar h2 {
+    padding: 16px;
+    font-size: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .chat-list {
+    flex: 1;
+  }
+
+  .chat-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+  }
+
+  .chat-item.active {
+    background-color: #2f4357;
+  }
+
+  .chat-item span {
+    display: block;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  /* --- Khung hội thoại --- */
+  .chat-window {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f0f0f0;
+  }
+
+  .chat-header {
+    background-color: #fff;
+    padding: 12px 20px;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+  }
+
+  .messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .message {
+    max-width: 60%;
+    margin-bottom: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  .message.self {
+    background: #d7f7c2;
+    align-self: flex-end;
+  }
+
+  .message small {
+    display: block;
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  .input-area {
+    background-color: #fff;
+    padding: 10px;
+    display: flex;
+    border-top: 1px solid #ddd;
+  }
+
+  .input-area input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+  }
+
+  .input-area button {
+    background-color: #0078ff;
+    color: white;
+    border: none;
+    padding: 0 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  /* --- Cột danh sách người --- */
+  .people-list {
+    width: 180px;
+    background-color: #f8f9fa;
+    border-left: 1px solid #ddd;
+  }
+
+  .people-list h3 {
+    padding: 12px 16px;
+    margin: 0;
+    font-size: 16px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .person {
+    padding: 10px 16px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+  }
+
+  .person span {
+    font-size: 13px;
+    color: gray;
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Shreyas</h2>
+    <div class="chat-list">
+      <div class="chat-item active">
+        Koala <span>typing...</span>
+      </div>
+      <div class="chat-item">
+        Friends <span>Last message...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-window">
+    <div class="chat-header">Koala</div>
+    <div class="messages">
+      <div class="message">
+        Hey! Let's connect!
+        <small>Koala • 12:14 AM</small>
+      </div>
+      <div class="message self">
+        Sure! Hi Koala 👋
+        <small>You • 12:15 AM</small>
+      </div>
+    </div>
+    <div class="input-area">
+      <input type="text" placeholder="Nhập tin nhắn...">
+      <button>Gửi</button>
+    </div>
+  </div>
+
+  <div class="people-list">
+    <h3>People</h3>
+    <div class="person">
+      Shreyas <span>Push the limits!</span>
+    </div>
+    <div class="person">
+      Koala <span>Hanging out...</span>
+    </div>
+  </div>
+</body>
+</html>
