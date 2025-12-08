@@ -1,8 +1,70 @@
-<html><body>
-<h1>Login</h1>
-<form method="POST" action="/login">
-  Username: <input name="username" type="text"><br>
-  Password: <input name="password" type="password"><br>
-  <input type="submit" value="Login">
-</form>
-</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background-color: #f3f5f7;
+    }
+  </style>
+</head>
+
+<body class="h-screen flex items-center justify-center">
+
+  <div class="bg-white p-8 rounded-lg shadow-lg w-96 border border-gray-200">
+    <h1 class="text-2xl font-semibold text-gray-800 mb-6 text-center">P2P Portal Login</h1>
+
+    <div class="flex flex-col gap-4">
+      <input id="username"
+             class="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+             placeholder="Username" />
+
+      <input id="password"
+             type="password"
+             class="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+             placeholder="Password" />
+
+      <button id="loginBtn"
+              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        Login
+      </button>
+
+      <div id="errorMsg" class="text-red-500 text-sm mt-1 hidden">
+        Invalid username or password.
+      </div>
+    </div>
+  </div>
+
+<script>
+  loginBtn.onclick = async () => {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    const res = await fetch("http://127.0.0.1:8000/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const result = await res.json();
+
+    if (result.ok) {
+      // Lưu token vào localStorage (tạm thay session)
+      localStorage.setItem("token", result.token);
+
+      window.location.href = "chat.html";
+    } else {
+      errorMsg.innerText = result.error || "Login failed";
+      errorMsg.classList.remove("hidden");
+    }
+  };
+</script>
+
+
+</body>
+</html>

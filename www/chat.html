@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>P2P Chat — Minimal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body { font-family: "Segoe UI", system-ui, sans-serif; background-color: #f3f5f7; }
+    .sidebar-item:hover { background-color: #e5e8ee; }
+    .sidebar-item.active { background-color: #c7d7ff; border-left: 4px solid #2563eb; }
+    .command-bar { background: white; border-bottom: 1px solid #d1d5db; }
+    .panel { background: white; border: 1px solid #d1d5db; border-radius: 8px; }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+  <!-- CHECK LOGIN -->
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+  </script>
+
+  <!-- TOP BAR -->
+  <header class="h-12 bg-[#1e1e1e] text-white flex items-center justify-between px-4">
+    <div class="flex items-center gap-3 font-semibold">
+      <div class="text-blue-400 text-lg">⌘</div>
+      <span>P2P Chat Portal</span>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-[#f8fafc] border-r border-gray-300 h-full flex flex-col">
+      <div class="p-4 font-semibold text-gray-700 text-sm">Navigation</div>
+
+      <nav class="flex flex-col text-sm flex-1">
+        <div id="navChat" class="sidebar-item active px-4 py-2 cursor-pointer">
+          Chat Workspace
+        </div>
+
+        <div id="navRequests" class="sidebar-item px-4 py-2 cursor-pointer">
+          Connection Requests
+        </div>
+      </nav>
+
+      <div class="text-xs text-gray-500 p-4 border-t">© 2025</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 overflow-y-auto">
+
+      <!-- COMMAND BAR -->
+      <div class="command-bar px-4 py-2 text-gray-600 text-sm">
+        P2P Chat System
+      </div>
+
+      <!-- CHAT WORKSPACE -->
+      <div id="chatPanel" class="p-6">
+        <div class="panel h-[630px] grid grid-cols-3 overflow-hidden">
+
+          <!-- LEFT: Peer list -->
+          <div class="border-r flex flex-col">
+            <div class="p-4 border-b font-semibold text-gray-700">Peers</div>
+
+            <div class="p-3">
+              <input id="peerSearch"
+                     class="w-full px-3 py-2 rounded border focus:ring-blue-500"
+                     placeholder="Search peers..." />
+            </div>
+
+            <div id="peerList" class="flex-1 overflow-y-auto p-2 text-sm"></div>
+          </div>
+
+          <!-- RIGHT: Chat -->
+          <div class="col-span-2 flex flex-col">
+
+            <!-- Header -->
+            <div class="h-14 px-4 flex items-center justify-between border-b">
+              <div class="flex items-center gap-3">
+                <div id="chatAvatar" class="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center text-blue-700 font-bold">?</div>
+                <div>
+                  <div id="chatPeerName" class="font-semibold text-gray-800 text-lg">Select a peer</div>
+                  <div id="chatPeerStatus" class="text-xs text-gray-500">Status</div>
+                </div>
+              </div>
+
+              <button id="connectBtn"
+                class="px-3 py-1 text-sm rounded-lg border border-gray-400 text-gray-600 bg-white">
+                Not connected
+              </button>
+            </div>
+
+            <!-- Messages -->
+            <div id="messageList" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+              <div id="emptyState" class="text-gray-500 text-sm flex justify-center items-center h-full">
+                Select a peer to chat
+              </div>
+            </div>
+
+            <!-- Input -->
+            <div class="p-3 border-t bg-gray-50 flex gap-3">
+              <textarea id="chatInput"
+                        class="flex-1 p-2 rounded border resize-none text-sm"
+                        rows="1"
+                        placeholder="Type a message..."></textarea>
+
+              <button id="sendBtn"
+                      class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-40"
+                      disabled>
+                Send
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- REQUEST LIST PANEL -->
+      <div id="requestPanel" class="hidden p-6">
+        <div class="panel p-4">
+          <div class="font-semibold text-gray-800 text-lg mb-3">Connection Requests</div>
+
+          <div id="requestList" class="text-sm flex flex-col gap-2">
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+<script>
+/* ============================================================
+   -=-=-=-=-=-=-=-=-=-=  BACKEND API CALLS  -=-=-=-=-=-=-=-=-=-= 
+   ============================================================*/
+
+let peers = [];
+const conversations = {};
+let currentPeerId = null;
+
+/* ------------------ LOAD PEERS ------------------ */
+async function loadPeers() {
+  const res = await fetch("http://127.0.0.1:8000/api/peers", {
+    headers: { Authorization: "Bearer " + localStorage.getItem("token") }
+  });
+
+  const data = await res.json();
+  console.log("RAW DATA:", data);       // <= Thêm
+  peers = data.peers || [];
+  console.log("PEERS ARRAY:", peers);  // <= Thêm
+
+  renderPeers();
+}
+
+
+/* ------------------ LOAD MESSAGES ------------------ */
+async function loadMessages(peerId) {
+  const res = await fetch("http://127.0.0.1:8000/api/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({ peer_id: peerId })
+  });
+
+  const data = await res.json();
+  conversations[peerId] = data.messages || [];
+
+  renderConversation();
+}
+
+
+/* ------------------ SEND MESSAGE ------------------ */
+async function sendMessage(peerId, text) {
+  await fetch("http://127.0.0.1:8000/api/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({ peer_id: peerId, msg: text })
+  });
+}
+
+/* ============================================================
+   -=-=-=-=-=-=-=-=-=-=-=- MAIN UI LOGIC -=-=-=-=-=-=-=-=-=-=-=- 
+   ============================================================*/
+
+const peerListEl = document.getElementById("peerList");
+const peerSearchEl = document.getElementById("peerSearch");
+
+const chatPeerNameEl = document.getElementById("chatPeerName");
+const chatPeerStatusEl = document.getElementById("chatPeerStatus");
+const chatAvatarEl = document.getElementById("chatAvatar");
+const connectBtnEl = document.getElementById("connectBtn");
+const messageListEl = document.getElementById("messageList");
+const emptyStateEl = document.getElementById("emptyState");
+const chatInputEl = document.getElementById("chatInput");
+const sendBtnEl = document.getElementById("sendBtn");
+
+
+/* ------------------ RENDER PEERS ------------------ */
+function renderPeers() {
+  const q = peerSearchEl.value.toLowerCase();
+  peerListEl.innerHTML = "";
+
+  peers.forEach(peer => {
+    if (q && !peer.name.toLowerCase().includes(q)) return;
+
+    const row = document.createElement("div");
+    row.className = "p-3 rounded hover:bg-blue-50 cursor-pointer";
+
+    row.innerHTML = `
+      <div class="font-medium text-gray-800">${peer.name}</div>
+      <div class="text-xs text-gray-500">
+        <span class="${peer.online ? "text-green-500" : "text-gray-400"}">●</span>
+        ${peer.online ? "Online" : "Offline"} • ${peer.id}
+      </div>
+    `;
+
+    row.onclick = () => selectPeer(peer.id);
+
+    peerListEl.appendChild(row);
+  });
+}
+
+
+/* ------------------ SELECT PEER ------------------ */
+function selectPeer(id) {
+  currentPeerId = id;
+  const peer = peers.find(p => p.id === id);
+
+  chatPeerNameEl.textContent = peer.name;
+  chatPeerStatusEl.textContent = peer.online ? "Online" : "Offline";
+  chatAvatarEl.textContent = peer.name[0];
+
+  sendBtnEl.disabled = true;
+
+  loadMessages(id);
+}
+
+
+/* ------------------ SEND MESSAGE BUTTON ------------------ */
+sendBtnEl.onclick = async () => {
+  const text = chatInputEl.value.trim();
+  if (!text) return;
+
+  await sendMessage(currentPeerId, text);
+
+  if (!conversations[currentPeerId]) conversations[currentPeerId] = [];
+  conversations[currentPeerId].push({ from: "me", text });
+
+  chatInputEl.value = "";
+  renderConversation();
+
+  loadMessages(currentPeerId); // refresh new messages
+};
+
+chatInputEl.oninput = () => {
+  sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
+};
+
+
+/* ------------------ RENDER CONVERSATION ------------------ */
+function renderConversation() {
+  messageListEl.innerHTML = "";
+  const msgs = conversations[currentPeerId] || [];
+
+  if (!msgs.length) {
+    emptyStateEl.style.display = "flex";
+    messageListEl.appendChild(emptyStateEl);
+    return;
+  }
+
+  emptyStateEl.style.display = "none";
+
+  msgs.forEach(m => {
+    const bubble = document.createElement("div");
+
+    const me = m.from === "me";
+    bubble.className =
+      `max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow ${
+        me
+        ? "ml-auto bg-blue-600 text-white rounded-br-none"
+        : "bg-gray-200 text-gray-800 rounded-bl-none"
+      }`;
+    bubble.textContent = m.text;
+
+    messageListEl.appendChild(bubble);
+  });
+
+  messageListEl.scrollTop = messageListEl.scrollHeight;
+}
+
+
+/* ------------------ SEARCH FILTER ------------------ */
+peerSearchEl.oninput = renderPeers;
+
+
+/* ------------------ RUN ------------------ */
+loadPeers();
+</script>
+
+</body>
+</html>

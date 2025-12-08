@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>P2P Chat – Test Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f4f6;
+      padding: 1rem;
+      margin: 0;
+    }
+    .row { display: flex; gap: 1rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    select, textarea, input {
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    select {
+      padding: 0.3rem 0.4rem;
+      border-radius: 0.375rem;
+      border: 1px solid #d1d5db;
+      min-width: 160px;
+    }
+    button {
+      padding: 0.35rem 0.7rem;
+      border-radius: 0.375rem;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #6b7280;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    #messages {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: white;
+      border-radius: 0.5rem;
+      border: 1px solid #e5e7eb;
+      height: 260px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+    .msg-line.me { color: #1d4ed8; }
+    .msg-line.other { color: #111827; }
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #e5e7eb;
+      margin-left: 0.25rem;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <strong>P2P Chat – Test UI</strong>
+  </div>
+  <div>
+    Token: <span id="tokenShort" class="badge"></span>
+    <button id="logoutBtn" class="secondary">Logout</button>
+  </div>
+</div>
+
+<div class="row">
+  <button id="loadPeersBtn">Load peers</button>
+  <select id="peerSelect"></select>
+  <span id="peerInfo" style="font-size:0.8rem;color:#6b7280;"></span>
+</div>
+
+<div class="row">
+  <button id="loadMessagesBtn" class="secondary">Load messages</button>
+</div>
+
+<div id="messages"></div>
+
+<div class="row" style="margin-top:1rem;">
+  <textarea id="msgInput" rows="2" style="flex:1; border-radius:0.5rem; border:1px solid #d1d5db; padding:0.4rem;"></textarea>
+  <button id="sendBtn">Send</button>
+</div>
+
+<div id="status" style="margin-top:0.5rem; font-size:0.8rem;color:#6b7280;"></div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) {
+  alert("No token found, redirecting to login");
+  window.location.href = "test_login.html";
+}
+
+document.getElementById("tokenShort").textContent = token.slice(0, 12) + "...";
+
+const peerSelect = document.getElementById("peerSelect");
+const peerInfo = document.getElementById("peerInfo");
+const messagesEl = document.getElementById("messages");
+const statusEl = document.getElementById("status");
+let peers = [];
+
+async function loadPeers() {
+  statusEl.textContent = "Loading peers...";
+  try {
+    const res = await fetch("/api/peers", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const data = await res.json();
+    console.log("peers:", data);
+
+    if (!data.ok) {
+      statusEl.textContent = "Error: " + (data.error || "unknown");
+      return;
+    }
+
+    peers = data.peers || [];
+    peerSelect.innerHTML = "";
+    peers.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.name} (${p.id})`;
+      peerSelect.appendChild(opt);
+    });
+
+    if (peers.length > 0) {
+      updatePeerInfo();
+    }
+
+    statusEl.textContent = "Peers loaded.";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Error loading peers.";
+  }
+}
+
+function updatePeerInfo() {
+  const id = peerSelect.value;
+  const p = peers.find(x => x.id === id);
+  if (!p) {
+    peerInfo.textContent = "";
+    return;
+  }
+  peerInfo.textContent = `${p.online ? "Online" : "Offline"}`;
+}
+
+async function loadMessages() {
+  const peerId = peerSelect.value;
+  if (!peerId) {
+    alert("Select a peer first");
+    return;
+  }
+
+  statusEl.textContent = `Loading messages for ${peerId}...`;
+  try {
+    const res = await fetch("/api/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ peer_id: peerId })
+    });
+
+    const data = await res.json();
+    console.log("messages:", data);
+
+    const msgs = data.messages || [];
+    renderMessages(msgs);
+    statusEl.textContent = `Loaded ${msgs.length} message(s) for ${peerId}.`;
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Error loading messages.";
+  }
+}
+
+function renderMessages(msgs) {
+  messagesEl.innerHTML = "";
+  if (!msgs.length) {
+    messagesEl.textContent = "(no messages)";
+    return;
+  }
+
+  msgs.forEach(m => {
+    const div = document.createElement("div");
+    div.className = "msg-line " + (m.from === "me" ? "me" : "other");
+    div.textContent = `[${m.from}] ${m.text}`;
+    messagesEl.appendChild(div);
+  });
+
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function sendMessage() {
+  const peerId = peerSelect.value;
+  if (!peerId) {
+    alert("Select a peer first");
+    return;
+  }
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text) return;
+
+  statusEl.textContent = `Sending to ${peerId}...`;
+  try {
+    const res = await fetch("/api/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ peer_id: peerId, msg: text })
+    });
+
+    const data = await res.json();
+    console.log("send:", data);
+
+    if (!data.ok) {
+      statusEl.textContent = "Send failed: " + (data.error || "unknown");
+      return;
+    }
+
+    document.getElementById("msgInput").value = "";
+    statusEl.textContent = "Message sent.";
+    await loadMessages();  // refresh ngay
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Error sending message.";
+  }
+}
+
+document.getElementById("loadPeersBtn").onclick = loadPeers;
+document.getElementById("loadMessagesBtn").onclick = loadMessages;
+document.getElementById("sendBtn").onclick = sendMessage;
+peerSelect.onchange = updatePeerInfo;
+document.getElementById("logoutBtn").onclick = () => {
+  localStorage.removeItem("token");
+  window.location.href = "test_login.html";
+};
+
+// auto-load peers khi mở trang
+loadPeers();
+</script>
+
+</body>
+</html>

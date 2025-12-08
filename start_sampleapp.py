@@ -47,7 +47,6 @@ def login(headers="guest", body="anonymous"):
     """
     print("[SampleApp] Logging in {} to {}".format(headers, body))
 
-
 @app.route('/hello', methods=['PUT'])
 def hello(headers, body):
     """
@@ -59,7 +58,8 @@ def hello(headers, body):
     :param headers (str): The request headers or user identifier.
     :param body (str): The request body or message payload.
     """
-    print ("[SampleApp] ['PUT'] Hello in {} to {}".format(headers, body))
+    print(f"[SampleApp] ['PUT'] Hello in {headers} to {body}")
+
 
 if __name__ == "__main__":
     # Parse command-line arguments to configure server IP and port

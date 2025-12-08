@@ -154,6 +154,7 @@
 
 
 #* My Request.py
+from urllib.parse import parse_qs
 
 class Request():
     def __init__(self, raw_request:str):
@@ -177,12 +178,24 @@ class Request():
         self.routes = {}
         self.hook = None
 
+    # def parse_request_line(self, request_lines):
+    #     try:
+    #         method, path, version = request_lines.split()    # tách theo dấu cách: GET /index.html HTTP/1.1
+    #         return method, path, version
+    #     except ValueError:
+    #         return None, None, None
+
     def parse_request_line(self, request_lines):
         try:
-            method, path, version = request_lines.split()    # tách theo dấu cách: GET /index.html HTTP/1.1
-            return method, path, version
+            method, full_path, version = request_lines.split()
+
+            # Tách path và query
+            path, _, query_string = full_path.partition('?')
+
+            return method, path, version, query_string
         except ValueError:
-            return None, None, None
+            return None, None, None, ""
+
 
     def parse_request_headers(self, header_lines):
         headers = {}
@@ -230,6 +243,40 @@ class Request():
 
 
 
+    # def prepare(self, raw_request, routes = None):
+    #     parts = raw_request.split('\r\n\r\n', 1)
+    #     header_part = parts[0]
+    #     body_part   = parts[1] if len(parts) > 1 else ''
+        
+    #     lines = header_part.split('\r\n')
+    #     request_line = lines[0]
+    #     header_line  = lines[1:]
+
+    #     print("=== DEBUG ====")
+
+    #     # Request
+    #     self.method, self.path, self.version = self.parse_request_line(request_line)
+
+    #     # Header
+    #     self.headers = self.parse_request_headers(header_line)
+
+    #     # Body
+    #     self.body = body_part
+
+    #     # Cookies
+    #     self.cookies = self.parse_cookies()
+
+    #     # Chuyển body thành dictionary
+    #     self.data = self.parse_body()
+
+    #     if routes:
+    #         self.routes = routes
+    #         self.hook = routes.get((self.method, self.path))
+    #         print("XYZ")
+    #         print(self.hook)
+    #     return self
+
+
     def prepare(self, raw_request, routes = None):
         parts = raw_request.split('\r\n\r\n', 1)
         header_part = parts[0]
@@ -239,11 +286,19 @@ class Request():
         request_line = lines[0]
         header_line  = lines[1:]
 
+        print("=== DEBUG ====")
+
         # Request
-        self.method, self.path, self.version = self.parse_request_line(request_line)
+        self.method, self.path, self.version, query_string = self.parse_request_line(request_line)
+        query_params = parse_qs(query_string)
+        # chuyển {k: [v]} → {k: v}
+        self.query = {k: v[0] for k, v in query_params.items()}
+
+
 
         # Header
         self.headers = self.parse_request_headers(header_line)
+        self.headers["query"] = self.query
 
         # Body
         self.body = body_part
@@ -257,10 +312,9 @@ class Request():
         if routes:
             self.routes = routes
             self.hook = routes.get((self.method, self.path))
-
+            print("XYZ")
+            print(self.hook)
         return self
-
-
 
 
 
