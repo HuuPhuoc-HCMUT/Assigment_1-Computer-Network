@@ -100,6 +100,7 @@ class Request():
         self.data = self.parse_body()
 
         if routes:
+            import pdb; pdb.set_trace() # BREAKPOINT Ở ĐÂY
             self.routes = routes
             self.hook = routes.get((self.method, self.path))
 

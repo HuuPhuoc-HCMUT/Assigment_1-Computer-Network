@@ -1,6 +1,10 @@
 # tracker.py
-from daemon import create_backend
-import json, time, secrets
+from daemon.weaprous import WeApRous
+import json, time, secrets, argparse
+
+PORT = 8000  # Default port
+
+app = WeApRous()
 
 USERS = {
     "admin": "password",
@@ -19,7 +23,7 @@ def json_response(obj, status=200):
         "json": obj
     }
 
-
+@app.route('/login', methods=['PUT'])
 def route_login(headers, body, cookies):
     data = json.loads(body or "{}")
     user = data.get("username", "")
@@ -43,7 +47,7 @@ def get_username_from_token(token):
         return None
     return s["username"]
 
-
+@app.route('/submit-info', methods=['POST'])
 def route_submit_info(headers, body, cookies):
     data = json.loads(body or "{}")
     token = data.get("token")
@@ -72,6 +76,7 @@ def route_submit_info(headers, body, cookies):
     return json_response({"status": "ok", "peer_id": peer_id})
 
 
+@app.route('/get-list', methods=['GET'])
 def route_get_list(headers, body, cookies):
     # giả sử daemon parse query string ra headers["query"] = dict
     query = headers.get("query", {})
@@ -103,6 +108,7 @@ def route_get_list(headers, body, cookies):
     return json_response({"status": "ok", "peers": res})
 
 
+@app.route('/add-list', methods=['POST'])
 def route_add_list(headers, body, cookies):
     data = json.loads(body or "{}")
     token = data.get("token")
@@ -122,6 +128,8 @@ def route_add_list(headers, body, cookies):
     return json_response({"status": "ok"})
 
 
+
+@app.route('/connect-peer', methods=['POST'])
 def route_connect_peer(headers, body, cookies):
     data = json.loads(body or "{}")
     token = data.get("token")
@@ -148,6 +156,7 @@ def route_connect_peer(headers, body, cookies):
     return json_response({"status": "error", "error": "peer_not_found"}, 404)
 
 
+@app.route('/send-peer', methods=['POST'])
 def route_send_peer(headers, body, cookies):
     data = json.loads(body or "{}")
     token = data.get("token")
@@ -171,30 +180,8 @@ def route_send_peer(headers, body, cookies):
     })
 
 
-def route_send_peer(headers, body, cookies):
-    data = json.loads(body or "{}")
-    token = data.get("token")
-    to = data.get("to")
-    message = data.get("message")
 
-    if not get_username_from_token(token):
-        return json_response(
-            {"status": "error", "error": "unauthorized"}, 401
-        )
-
-    if not to or not message:
-        return json_response(
-            {"status": "error", "error": "missing_fields"}, 400
-        )
-
-    # KHÔNG relay message
-    return json_response({
-        "status": "ok",
-        "note": "message delivered via P2P"
-    })
-
-
-
+@app.route('/broadcast-peer', methods=['POST'])
 def route_broadcast_peer(headers, body, cookies):
     data = json.loads(body or "{}")
     token = data.get("token")
@@ -218,14 +205,16 @@ def route_broadcast_peer(headers, body, cookies):
 
 
 
-routes = {
-    ('PUT', '/login'): route_login,
-    ('POST', '/submit-info'): route_submit_info,
-    ('GET', '/get-list'): route_get_list,
-    ('POST', '/add-list'): route_add_list,
-    ('POST', '/connect-peer'): route_connect_peer,
-    ('POST', '/send-peer'): route_send_peer,
-    ('POST', '/broadcast-peer'): route_broadcast_peer
-}
+if __name__ == "__main__":
+    # Parse command-line arguments to configure server IP and port
+    parser = argparse.ArgumentParser(prog='Backend', description='', epilog='Beckend daemon')
+    parser.add_argument('--server-ip', default='0.0.0.0')
+    parser.add_argument('--server-port', type=int, default=PORT)
+ 
+    args = parser.parse_args()
+    ip = args.server_ip
+    port = args.server_port
 
-create_backend('0.0.0.0', 8000, routes)
+    # Prepare and launch the RESTful application
+    app.prepare_address(ip, port)
+    app.run()

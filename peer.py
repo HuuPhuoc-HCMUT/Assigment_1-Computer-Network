@@ -189,7 +189,8 @@ class P2PServer(threading.Thread):
                 print(f"\n[{channel}] {msg['from']}: {msg['message']}")
 
             elif msg["type"] == "direct":
-                print(f"\n[DM] {msg['from']}: {msg['message']}")
+                channel = f"dm:{msg['from']}"
+                self.channel_manager.add_message(channel, msg)
 
         except Exception as e:
             print("P2P error:", e)

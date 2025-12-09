@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Frontend kết nối Backend</title>
+</head>
+<body>
+    <h1>Ứng dụng Chào mừng Đơn giản</h1>
+    <input type="text" id="nameInput" placeholder="Nhập tên của bạn">
+    <button onclick="sendName()">Gửi đến Backend</button>
+    
+    <p><strong>Phản hồi từ Backend:</strong></p>
+    <div id="responseMessage" style="border: 1px solid #ccc; padding: 10px; min-height: 20px;">
+        Chưa có phản hồi.
+    </div>
+
+    <script>
+        // Hàm này được gọi khi nhấn nút "Gửi đến Backend"
+        async function sendName() {
+            const name = document.getElementById('nameInput').value;
+            const responseDiv = document.getElementById('responseMessage');
+            
+            if (!name) {
+                responseDiv.innerHTML = "Vui lòng nhập tên.";
+                return;
+            }
+
+            // URL của API Flask Backend (Mặc định là http://127.0.0.1:5000)
+            const apiUrl = 'http://127.0.0.1:5000/api/greeting';
+
+            try {
+                // Gửi yêu cầu POST đến Backend sử dụng Fetch API
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        // Báo cho Backend biết dữ liệu gửi đi là JSON
+                        'Content-Type': 'application/json'
+                    },
+                    // Chuyển đối tượng JavaScript thành chuỗi JSON để gửi đi
+                    body: JSON.stringify({ name: name })
+                });
+
+                // Chuyển phản hồi (Response) thành đối tượng JavaScript
+                const data = await response.json(); 
+
+                if (response.ok) {
+                    // Nếu Status Code là 200 (Thành công)
+                    responseDiv.innerHTML = `✅ Thành công: ${data.greeting}`;
+                } else {
+                    // Nếu có lỗi (ví dụ 400, 500)
+                    responseDiv.innerHTML = `❌ Lỗi: ${data.message || 'Lỗi không xác định'}`;
+                }
+
+            } catch (error) {
+                // Xử lý lỗi kết nối mạng hoặc server không chạy
+                responseDiv.innerHTML = `💔 Lỗi kết nối: Server Flask có đang chạy không? (${error.message})`;
+                console.error('Lỗi khi gọi API:', error);
+            }
+        }
+    </script>
+</body>
+</html>

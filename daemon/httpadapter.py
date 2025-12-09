@@ -79,6 +79,12 @@ class HttpAdapter:
                     else:
                         header_extra = ""
 
+                    # ---- 2.5 Custom headers (CORS, etc.) ----
+                    custom_headers = ""
+                    if "headers" in result:
+                        for k, v in result["headers"].items():
+                            custom_headers += f"{k}: {v}\r\n"
+
                     # ---- 3. Body (html or json) ----
                     if "html" in result:
                         body = result["html"].encode()
@@ -93,6 +99,7 @@ class HttpAdapter:
                         f"Content-Type: {content_type}\r\n"
                         f"Content-Length: {len(body)}\r\n"
                         f"{header_extra}"
+                        f"{custom_headers}"
                         "Connection: close\r\n\r\n"
                     ).encode()
 
@@ -113,10 +120,23 @@ class HttpAdapter:
                     print("Check thử body này")
                     return
 
+                elif isinstance(result, list):
+                    body = json.dumps(result).encode("utf-8")
+                    header = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: application/json\r\n"
+                        f"Content-Length: {len(body)}\r\n"
+                        "Connection: close\r\n\r\n"
+                    ).encode()
+                    conn.sendall(header + body)
+                    return
+
+
                 else:  # unsupported
                     resp = self.response
                     resp.status_code = 500
                     resp.body = "Unsupported return type"
+                    print("Unsupport Type")
                     conn.sendall(resp.build_response(req))
                     return
 

@@ -1,0 +1,263 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+  <title>Peer UI</title>
+</head>
+<body>
+
+<h2>Login</h2>
+<input id="user" placeholder="username">
+<input id="pass" placeholder="password" type="password">
+<button onclick="login()">Login</button>
+
+<h2>Chat</h2>
+<input id="port" placeholder="P2P port">
+<button onclick="start()">Start Peer</button>
+
+<br><br>
+
+<input id="msg">
+<button onclick="send()">Broadcast</button>
+
+<pre id="log"></pre>
+
+<script>
+const API = "http://127.0.0.1:9000";
+
+function log(msg) {
+  document.getElementById("log").textContent += msg + "\n";
+}
+
+function login() {
+  fetch(API + "/login", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      username: user.value,
+      password: pass.value
+    })
+  }).then(r => r.json()).then(d => log("Logged in"));
+}
+
+function start() {
+  fetch(API + "/start", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({port: port.value})
+  }).then(r => r.json()).then(d => log("Peer started"));
+}
+
+function send() {
+  fetch(API + "/broadcast", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      channel: "global",
+      message: msg.value
+    })
+  });
+}
+</script>
+
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Mini P2P Chat</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #111;
+  color: #eee;
+  margin: 0;
+  padding: 0;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  width: 250px;
+  background: #1a1a1a;
+  padding: 10px;
+  border-right: 1px solid #333;
+}
+
+#chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+h3 {
+  margin: 5px 0;
+}
+
+input, button {
+  width: 100%;
+  margin: 4px 0;
+  padding: 6px;
+  background: #222;
+  color: #eee;
+  border: 1px solid #444;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:hover {
+  background: #333;
+}
+
+#messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  background: #0d0d0d;
+  font-size: 14px;
+}
+
+.msg {
+  margin-bottom: 6px;
+}
+
+.from {
+  color: #4dd;
+  font-weight: bold;
+}
+
+#input {
+  display: flex;
+  padding: 10px;
+  border-top: 1px solid #333;
+}
+
+#input input {
+  flex: 1;
+  margin-right: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="container">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <h3>Login</h3>
+    <input id="user" placeholder="username">
+    <input id="pass" type="password" placeholder="password">
+    <button onclick="login()">Login</button>
+
+    <h3>Peer</h3>
+    <input id="port" placeholder="P2P port">
+    <button onclick="startPeer()">Start Peer</button>
+
+    <h3>Peers</h3>
+    <button onclick="loadPeers()">Refresh</button>
+    <div id="peerList"></div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat">
+    <div id="messages"></div>
+
+    <div id="input">
+      <input id="msg" placeholder="message">
+      <button onclick="broadcast()">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = "http://127.0.0.1:9000";
+const CHANNEL = "global";
+
+let peers = [];
+
+function api(path, method="GET", body=null) {
+  return fetch(API + path, {
+    method,
+    headers: {"Content-Type": "application/json"},
+    body: body ? JSON.stringify(body) : null
+  }).then(r => r.json());
+}
+
+function login() {
+  api("/login", "POST", {
+    username: user.value,
+    password: pass.value
+  }).then(() => alert("Logged in"));
+}
+
+function startPeer() {
+  api("/start", "POST", {
+    port: port.value
+  }).then(() => alert("Peer started"));
+}
+
+function loadPeers() {
+  api("/peers?channel=" + CHANNEL).then(data => {
+    peers = data;
+    peerList.innerHTML = "";
+    data.forEach(p => {
+      let d = document.createElement("div");
+      d.textContent = p.username;
+      d.style.cursor = "pointer";
+      d.onclick = () => dm(p.username);
+      peerList.appendChild(d);
+    });
+  });
+}
+
+function dm(user) {
+  let text = prompt("Message to " + user);
+  if (!text) return;
+
+  api("/dm", "POST", {
+    to: user,
+    message: text
+  });
+}
+
+function broadcast() {
+  let text = msg.value;
+  msg.value = "";
+  api("/broadcast", "POST", {
+    channel: CHANNEL,
+    message: text
+  });
+}
+
+function renderMessages(msgs) {
+  messages.innerHTML = "";
+  msgs.forEach(m => {
+    let div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML =
+      `<span class="from">${m.from}</span>: ${m.message}`;
+    messages.appendChild(div);
+  });
+  messages.scrollTop = messages.scrollHeight;
+}
+
+setInterval(() => {
+  api("/messages?channel=" + CHANNEL)
+    .then(renderMessages)
+    .catch(() => {});
+}, 1000);
+</script>
+
+</body>
+</html>

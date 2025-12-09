@@ -192,6 +192,7 @@ class Response():
             base_dir = self.prepare_content_type(mime_type)
         else:
             print("HELLO")
+            print ("ĐÂY NÈ")
             return self.build_notfound()
 
         # Read content
