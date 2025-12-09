@@ -192,6 +192,11 @@ class P2PServer(threading.Thread):
                 channel = f"dm:{msg['from']}"
                 self.channel_manager.add_message(channel, msg)
 
+
+            # elif msg["type"] == "direct":
+            #     print(f"\n[DM] {msg['from']}: {msg['message']}")
+
+
         except Exception as e:
             print("P2P error:", e)
         finally:
@@ -202,6 +207,9 @@ class P2PServer(threading.Thread):
 class P2PClient:
     @staticmethod
     def send(peer, payload):
+        print("[DEBUG] send to peer:", peer)
+        print("[DEBUG] payload:", payload)
+        
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((peer["ip"], peer["port"]))

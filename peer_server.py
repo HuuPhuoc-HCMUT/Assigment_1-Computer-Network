@@ -85,9 +85,15 @@ def peers(headers, body, cookies):
 def dm(headers, body, cookies):
     data = json.loads(body or "{}")
 
+    print("[DEBUG] DM request:", data)
+
     peer = tracker.connect_peer(data["to"])
     if not peer:
         return {"error": "peer_not_found"}
+    
+
+    print("[DEBUG] connect_peer return:", peer)
+
 
     P2PClient.send(peer, {
         "type": "direct",
