@@ -79,11 +79,25 @@ class HttpAdapter:
                     else:
                         header_extra = ""
 
+                    # # ---- 2.5 Custom headers (CORS, etc.) ----
+                    # custom_headers = ""
+                    # if "headers" in result:
+                    #     for k, v in result["headers"].items():
+                    #         custom_headers += f"{k}: {v}\r\n"
+
                     # ---- 2.5 Custom headers (CORS, etc.) ----
+                    headers_dict = result.get("headers", {})
+
+                    # Bổ sung CORS mặc định nếu chưa có
+                    if "Access-Control-Allow-Origin" not in headers_dict:
+                        headers_dict["Access-Control-Allow-Origin"] = "*"
+                        headers_dict["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                        headers_dict["Access-Control-Allow-Headers"] = "Content-Type"
+
                     custom_headers = ""
-                    if "headers" in result:
-                        for k, v in result["headers"].items():
-                            custom_headers += f"{k}: {v}\r\n"
+                    for k, v in headers_dict.items():
+                        custom_headers += f"{k}: {v}\r\n"
+
 
                     # ---- 3. Body (html or json) ----
                     if "html" in result:
@@ -108,23 +122,52 @@ class HttpAdapter:
 
 
                 # Plain text
+                # elif isinstance(result, str):
+                #     body = result.encode("utf-8")
+                #     header = (
+                #         "HTTP/1.1 200 OK\r\n"
+                #         "Content-Type: text/plain\r\n"
+                #         f"Content-Length: {len(body)}\r\n"
+                #         "Connection: close\r\n\r\n"
+                #     ).encode()
+                #     conn.sendall(header + body)
+                #     print("Check thử body này")
+                #     return
+
                 elif isinstance(result, str):
                     body = result.encode("utf-8")
                     header = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/plain\r\n"
+                        "Access-Control-Allow-Origin: *\r\n"
+                        "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+                        "Access-Control-Allow-Headers: Content-Type\r\n"
                         f"Content-Length: {len(body)}\r\n"
                         "Connection: close\r\n\r\n"
                     ).encode()
                     conn.sendall(header + body)
-                    print("Check thử body này")
                     return
+
+
+                # elif isinstance(result, list):
+                #     body = json.dumps(result).encode("utf-8")
+                #     header = (
+                #         "HTTP/1.1 200 OK\r\n"
+                #         "Content-Type: application/json\r\n"
+                #         f"Content-Length: {len(body)}\r\n"
+                #         "Connection: close\r\n\r\n"
+                #     ).encode()
+                #     conn.sendall(header + body)
+                #     return
 
                 elif isinstance(result, list):
                     body = json.dumps(result).encode("utf-8")
                     header = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: application/json\r\n"
+                        "Access-Control-Allow-Origin: *\r\n"
+                        "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+                        "Access-Control-Allow-Headers: Content-Type\r\n"
                         f"Content-Length: {len(body)}\r\n"
                         "Connection: close\r\n\r\n"
                     ).encode()
