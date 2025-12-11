@@ -169,29 +169,46 @@ def broadcast(headers, body, cookies):
 #         }
 
 
+# @app.route("/", methods=["GET"])
+# def index(headers, body, cookies):
+#     # Debug: in ra cookies nhận được
+#     print(f"[DEBUG] Cookies received at /: {cookies}")
+    
+#     port = os.environ.get("PEER_PORT", "9001")
+#     html_file = f"index_{port}.html"
+    
+#     try:
+#         with open(html_file) as f:
+#             return {
+#                 "status": 200,
+#                 "headers": {"Content-Type": "text/html"},
+#                 "html": f.read()
+#             }
+#     except FileNotFoundError:
+#         with open("index.html") as f:
+#             return {
+#                 "status": 200,
+#                 "headers": {"Content-Type": "text/html"},
+#                 "html": f.read()
+#             }
+
+
 @app.route("/", methods=["GET"])
 def index(headers, body, cookies):
-    # Debug: in ra cookies nhận được
-    print(f"[DEBUG] Cookies received at /: {cookies}")
-    
     port = os.environ.get("PEER_PORT", "9001")
-    html_file = f"index_{port}.html"
-    
-    try:
-        with open(html_file) as f:
-            return {
-                "status": 200,
-                "headers": {"Content-Type": "text/html"},
-                "html": f.read()
-            }
-    except FileNotFoundError:
-        with open("index.html") as f:
-            return {
-                "status": 200,
-                "headers": {"Content-Type": "text/html"},
-                "html": f.read()
-            }
+    ip = config.MY_IP  # Lấy IP thực tế từ config (đã được cập nhật trong __main__)
 
+    with open("index.html") as f:
+        html = f.read()
+
+    html = html.replace("{{PEER_HTTP_PORT}}", port)
+    html = html.replace("{{PEER_IP}}", ip)
+
+    return {
+        "status": 200,
+        "headers": {"Content-Type": "text/html"},
+        "html": html
+    }
 
 
 @app.route("/messages", methods=["GET"])

@@ -3,7 +3,8 @@
 # IP của máy chạy Tracker Server
 # - Nếu chạy local: dùng "127.0.0.1"  
 # - Nếu chạy qua mạng LAN: dùng IP thực (ví dụ: "10.130.17.55")
-TRACKER_HOST = "127.0.0.1"
+# TRACKER_HOST = "127.0.0.1"
+TRACKER_HOST = "192.168.1.68"
 TRACKER_PORT = 8000
 
 TRACKER_URL = f"http://{TRACKER_HOST}:{TRACKER_PORT}"
@@ -16,7 +17,7 @@ PEER_BIND_IP = "0.0.0.0"
 # IP thực của peer để gửi cho tracker
 # - Nếu chạy local: dùng "127.0.0.1"
 # - Nếu chạy qua mạng LAN: dùng IP thực (ví dụ: "10.130.17.55")
-MY_IP = "127.0.0.1"
+MY_IP = ""
 
 
 

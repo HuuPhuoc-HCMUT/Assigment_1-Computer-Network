@@ -258,6 +258,8 @@ async function poll() {
 
     if (msgs.length > lastCount) {
       msgs.slice(lastCount).forEach(m => {
+        // Bỏ qua tin nhắn đã gửi (có flag sent=true) vì đã hiển thị "me:" rồi
+        if (m.sent) return;
         logMessage(m.from, m.message);
       });
       lastCount = msgs.length;

@@ -115,7 +115,10 @@
   <!-- CHAT -->
   <div id="chat">
     <div id="chat-header">
-      Chat with: <span id="chatTarget">None</span>
+      Chat with: <span id="chatTarget">Global Chat</span>
+      <button onclick="switchToGlobal()" style="margin-left:10px;">
+        Global
+      </button>
     </div>
 
     <div id="chat-box"></div>
@@ -129,11 +132,16 @@
 </div>
 
 <script>
-const API = window.location.origin;  // Tự động lấy từ URL hiện tại
+// Placeholder sẽ được thay thế bởi peer_server.py
+const PEER_IP = "{{PEER_IP}}";
+const PEER_HTTP_PORT = "{{PEER_HTTP_PORT}}";
+const API = `http://${PEER_IP}:${PEER_HTTP_PORT}`;
 
 let currentTarget = null;
-let currentChannel = null;
+let currentChannel = "global";
 let lastCount = 0;
+
+document.getElementById("chatTarget").innerText = "Global Chat";
 
 // ---------- AUTH ----------
 async function login() {
@@ -185,23 +193,44 @@ function openChat(user) {
 
 // ---------- SEND ----------
 async function send() {
-  if (!currentTarget) return;
-
   const text = msgInput.value.trim();
   if (!text) return;
-
   msgInput.value = "";
 
-  await fetch(API + "/dm", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      to: currentTarget,
-      message: text
-    })
-  });
+  // ---- CHAT ALL ----
+  if (currentTarget === null) {
+    await fetch(API + "/broadcast", {
+      method: "POST",
+      credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ message: text })
+    });
+  }
+  // ---- DM ----
+  else {
+    await fetch(API + "/dm", {
+      method: "POST",
+      credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        to: currentTarget,
+        message: text
+      })
+    });
+  }
 
   logMessage("me", text);
+}
+
+// ---------- SWITCH TO GLOBAL ----------
+function switchToGlobal() {
+  currentTarget = null;
+  currentChannel = "global";
+  lastCount = 0;
+
+  document.getElementById("chatTarget").innerText = "Global Chat";
+  document.getElementById("chat-box").innerHTML = "";
+  logSystem("Switched to global chat");
 }
 
 // ---------- POLLING ----------
@@ -214,6 +243,8 @@ async function poll() {
 
     if (msgs.length > lastCount) {
       msgs.slice(lastCount).forEach(m => {
+        // Bỏ qua tin nhắn đã gửi (có flag sent=true) vì đã hiển thị "me:" rồi
+        if (m.sent) return;
         logMessage(m.from, m.message);
       });
       lastCount = msgs.length;
