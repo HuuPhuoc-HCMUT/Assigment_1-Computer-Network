@@ -62,7 +62,8 @@ def route_submit_info(headers, body, cookies):
     channels = set(data.get("channels", []))
 
     # lấy IP từ headers do daemon cung cấp, ví dụ:
-    ip = headers.get("remote_addr", "0.0.0.0")
+    # ip = headers.get("remote_addr", "0.0.0.0")
+    ip = data.get("ip") or headers.get("remote_addr", "0.0.0.0")
 
     peer_id = data.get("peer_id") or secrets.token_hex(8)
     PEERS[peer_id] = {
@@ -73,6 +74,9 @@ def route_submit_info(headers, body, cookies):
         "last_seen": time.time()
     }
 
+    print(f"[DEBUG] submit-info: username={username}, ip={ip}, port={listen_port}, channels={channels}")
+    print(f"[DEBUG] PEERS now: {PEERS}")
+
     return json_response({"status": "ok", "peer_id": peer_id})
 
 
@@ -82,6 +86,10 @@ def route_get_list(headers, body, cookies):
     query = headers.get("query", {})
     token = query.get("token")
     username = get_username_from_token(token)
+    
+    print(f"[DEBUG] get-list: token={token}, username={username}")
+    print(f"[DEBUG] PEERS: {PEERS}")
+    
     if not username:
         return json_response({"status": "error", "error": "unauthorized"}, 401)
 
@@ -92,8 +100,10 @@ def route_get_list(headers, body, cookies):
     for pid, info in PEERS.items():
         # timeout 30s
         if now - info["last_seen"] > 30:
+            print(f"[DEBUG] Peer {pid} timed out")
             continue
         if channel and channel not in info["channels"]:
+            print(f"[DEBUG] Peer {pid} not in channel {channel}, has {info['channels']}")
             continue
         if info["username"] == username:
             continue
@@ -105,6 +115,7 @@ def route_get_list(headers, body, cookies):
             "port": info["port"]
         })
 
+    print(f"[DEBUG] Returning peers: {res}")
     return json_response({"status": "ok", "peers": res})
 
 

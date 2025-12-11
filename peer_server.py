@@ -1,6 +1,6 @@
 # peer_server.py
 from daemon.weaprous import WeApRous
-import json, time, threading, os
+import json, time, threading, os, argparse
 
 from peer import (
     TrackerClient,
@@ -10,10 +10,12 @@ from peer import (
     heartbeat_loop
 )
 
+from config import TRACKER_URL, PEER_BIND_IP
+import config  # Import module để truy cập config.MY_IP động
+
 # -------------------------
 # GLOBAL STATE (peer runtime)
 # -------------------------
-TRACKER_URL = "http://127.0.0.1:8000"
 
 app = WeApRous()
 
@@ -71,7 +73,8 @@ def start_peer(headers, body, cookies):
     data = json.loads(body or "{}")
     listen_port = int(data["port"])
 
-    tracker.submit_info(listen_port, channels)
+    # Truyền IP trực tiếp từ config.MY_IP (đã được cập nhật trong __main__)
+    tracker.submit_info(listen_port, channels, ip=config.MY_IP)
 
     # start P2P server
     P2PServer("0.0.0.0", listen_port, channel_manager).start()
@@ -79,7 +82,7 @@ def start_peer(headers, body, cookies):
     # start heartbeat thread
     threading.Thread(
         target=heartbeat_loop,
-        args=(tracker, listen_port, channels),
+        args=(tracker, listen_port, channels, config.MY_IP),
         daemon=True
     ).start()
 
@@ -222,8 +225,20 @@ def cors_preflight(headers, body, cookies):
 # -------------------------
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PEER_PORT", "9001"))
-    print(f"[Peer] HTTP API listening on {port}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", default=PEER_BIND_IP)
+    args = parser.parse_args()
 
-    app.prepare_address("127.0.0.1", port)
+    host = args.host
+    port = int(os.environ.get("PEER_PORT", "9001"))
+
+    print(f"[Peer] HTTP API listening on {host}:{port}")
+
+    # Bind đúng IP
+    app.prepare_address(host, port)
+
+    # Quan trọng: cập nhật MY_IP động!
+    import config
+    config.MY_IP = host
+
     app.run()

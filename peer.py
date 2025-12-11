@@ -6,7 +6,9 @@ import time
 import requests
 import sys
 
-TRACKER_URL = "http://127.0.0.1:8000"
+from config import TRACKER_URL
+from config import MY_IP
+
 HEARTBEAT_INTERVAL = 10
 P2P_BUFFER = 4096
 
@@ -64,11 +66,13 @@ class TrackerClient:
     
     
 
-    def submit_info(self, listen_port, channels):
+    def submit_info(self, listen_port, channels, ip=None):
+        from config import MY_IP
         payload = {
             "token": self.token,
             "listen_port": listen_port,
-            "channels": channels
+            "channels": channels,
+            "ip": ip or MY_IP
         }
 
         if self.peer_id:
@@ -217,15 +221,17 @@ class P2PClient:
             print("Send failed:", e)
 
 
-def heartbeat_loop(tracker, listen_port, channels):
+def heartbeat_loop(tracker, listen_port, channels, ip=None):
+    from config import MY_IP
+    actual_ip = ip or MY_IP
     while True:
         try:
-            res = tracker.submit_info(listen_port, channels)
+            res = tracker.submit_info(listen_port, channels, ip=actual_ip)
 
             if res == "RELOGIN":
                 print("[INFO] re-login to tracker")
                 if tracker.relogin():
-                    tracker.submit_info(listen_port, channels)
+                    tracker.submit_info(listen_port, channels, ip=actual_ip)
 
         except Exception:
             pass

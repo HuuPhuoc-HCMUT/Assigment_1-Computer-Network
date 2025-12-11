@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>P2P Web Chat</title>
+  <title>P2P Web Chat - Peer 10003</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -55,6 +55,7 @@
       padding: 10px;
       overflow-y: auto;
       margin-bottom: 5px;
+      min-height: 300px;
     }
 
     .msg {
@@ -87,7 +88,7 @@
 </head>
 <body>
 
-<h2>P2P Web Chat</h2>
+<h2>P2P Web Chat - Peer 10003</h2>
 
 <!-- LOGIN -->
 <div>
@@ -98,7 +99,7 @@
 
 <!-- START -->
 <div style="margin-top:6px;">
-  <input id="p2pPort" value="9006" placeholder="P2P port">
+  <input id="p2pPort" value="9003" placeholder="P2P port">
   <button onclick="startPeer()">Start Peer</button>
 </div>
 
@@ -115,8 +116,12 @@
   <!-- CHAT -->
   <div id="chat">
     <div id="chat-header">
-      Chat with: <span id="chatTarget">None</span>
+      Chat with: <span id="chatTarget">Global Chat</span>
+      <button onclick="switchToGlobal()" style="margin-left:10px;">
+        Global
+      </button>
     </div>
+
 
     <div id="chat-box"></div>
 
@@ -132,13 +137,17 @@
 const API = window.location.origin;  // Tự động lấy từ URL hiện tại
 
 let currentTarget = null;
-let currentChannel = null;
+let currentChannel = "global";
 let lastCount = 0;
+
+document.getElementById("chatTarget").innerText = "Global Chat";
+
 
 // ---------- AUTH ----------
 async function login() {
   await fetch(API + "/login", {
     method: "POST",
+    credentials: "include",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       username: username.value,
@@ -151,6 +160,7 @@ async function login() {
 async function startPeer() {
   await fetch(API + "/start", {
     method: "POST",
+    credentials: "include",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ port: Number(p2pPort.value) })
   });
@@ -159,20 +169,27 @@ async function startPeer() {
 
 // ---------- PEERS ----------
 async function loadPeers() {
-  const r = await fetch(API + "/peers?channel=global");
-  const peers = await r.json();
+  try {
+    const r = await fetch(API + "/peers?channel=global", {
+      credentials: "include"
+    });
+    const peers = await r.json();
 
-  const box = document.getElementById("peers");
-  box.innerHTML = "";
+    const box = document.getElementById("peers");
+    box.innerHTML = "";
 
-  peers.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "peer";
-    div.innerText = p.username;
-    div.onclick = () => openChat(p.username);
-    box.appendChild(div);
-  });
+    peers.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "peer";
+      div.innerText = p.username;
+      div.onclick = () => openChat(p.username);
+      box.appendChild(div);
+    });
+  } catch (e) {
+    console.error("loadPeers error:", e);
+  }
 }
+
 
 function openChat(user) {
   currentTarget = user;
@@ -185,31 +202,58 @@ function openChat(user) {
 
 // ---------- SEND ----------
 async function send() {
-  if (!currentTarget) return;
-
   const text = msgInput.value.trim();
   if (!text) return;
-
   msgInput.value = "";
 
-  await fetch(API + "/dm", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      to: currentTarget,
-      message: text
-    })
-  });
+  // ---- CHAT ALL ----
+  if (currentTarget === null) {
+    await fetch(API + "/broadcast", {
+      method: "POST",
+      credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ message: text })
+    });
+  }
+  // ---- DM ----
+  else {
+    await fetch(API + "/dm", {
+      method: "POST",
+      credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        to: currentTarget,
+        message: text
+      })
+    });
+  }
 
   logMessage("me", text);
 }
+
+
+
+function switchToGlobal() {
+  currentTarget = null;
+  currentChannel = "global";
+  lastCount = 0;
+
+  document.getElementById("chatTarget").innerText = "Global Chat";
+  document.getElementById("chat-box").innerHTML = "";
+  logSystem("Switched to global chat");
+}
+
+
+
 
 // ---------- POLLING ----------
 async function poll() {
   if (!currentChannel) return;
 
   try {
-    const r = await fetch(API + "/messages?channel=" + currentChannel);
+    const r = await fetch(API + "/messages?channel=" + currentChannel, {
+      credentials: "include"
+    });
     const msgs = await r.json();
 
     if (msgs.length > lastCount) {
