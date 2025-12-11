@@ -150,6 +150,7 @@ document.getElementById("chatTarget").innerText = "Global Chat";
 async function login() {
   await fetch(API + "/login", {
     method: "POST",
+    credentials: "include",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       username: username.value,
@@ -162,6 +163,7 @@ async function login() {
 async function startPeer() {
   await fetch(API + "/start", {
     method: "POST",
+    credentials: "include",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ port: Number(p2pPort.value) })
   });
@@ -188,7 +190,9 @@ async function startPeer() {
 
 async function loadPeers() {
   try {
-    const r = await fetch(API + "/peers?channel=global");
+    const r = await fetch(API + "/peers?channel=global", {
+      credentials: "include"
+    });
     const peers = await r.json();
 
     const box = document.getElementById("peers");
@@ -248,6 +252,7 @@ async function send() {
   if (currentTarget === null) {
     await fetch(API + "/broadcast", {
       method: "POST",
+      credentials: "include",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ message: text })
     });
@@ -256,6 +261,7 @@ async function send() {
   else {
     await fetch(API + "/dm", {
       method: "POST",
+      credentials: "include",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
         to: currentTarget,
@@ -287,7 +293,9 @@ async function poll() {
   if (!currentChannel) return;
 
   try {
-    const r = await fetch(API + "/messages?channel=" + currentChannel);
+    const r = await fetch(API + "/messages?channel=" + currentChannel, {
+      credentials: "include"
+    });
     const msgs = await r.json();
 
     if (msgs.length > lastCount) {

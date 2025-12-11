@@ -23,7 +23,7 @@ def json_response(obj, status=200):
         "json": obj
     }
 
-@app.route('/login', methods=['PUT'])
+@app.route('/login', methods=['POST'])
 def route_login(headers, body, cookies):
     data = json.loads(body or "{}")
     user = data.get("username", "")

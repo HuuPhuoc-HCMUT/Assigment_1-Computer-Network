@@ -38,6 +38,16 @@ def cors_headers():
 # -------------------------
 # API ROUTES
 # -------------------------
+# @app.route("/login", methods=["POST"])
+# def login(headers, body, cookies):
+#     global username
+#     data = json.loads(body or "{}")
+#     username = data.get("username")
+
+#     if tracker.login(data["username"], data["password"]):
+#         return {"ok": True}
+#     return {"error": "login_failed"}
+
 @app.route("/login", methods=["POST"])
 def login(headers, body, cookies):
     global username
@@ -45,9 +55,13 @@ def login(headers, body, cookies):
     username = data.get("username")
 
     if tracker.login(data["username"], data["password"]):
-        return {"ok": True}
-    return {"error": "login_failed"}
+        return {
+            "status": 200,
+            "cookie": "auth=true; Path=/; SameSite=Lax",
+            "json": {"ok": True}
+        }
 
+    return {"status": 401, "json": {"error": "login_failed"}}
 
 
 @app.route("/start", methods=["POST"])
@@ -94,14 +108,22 @@ def dm(headers, body, cookies):
 
     print("[DEBUG] connect_peer return:", peer)
 
-
-    P2PClient.send(peer, {
+    msg_payload = {
         "type": "direct",
         "from": username,
         "to": data["to"],
         "message": data["message"],
         "timestamp": time.time()
-    })
+    }
+
+    # Gửi P2P đến peer
+    P2PClient.send(peer, msg_payload)
+
+    # Lưu tin nhắn của chính mình với flag 'sent' để UI biết
+    msg_payload_with_flag = msg_payload.copy()
+    msg_payload_with_flag["sent"] = True
+    channel = f"dm:{data['to']}"
+    channel_manager.add_message(channel, msg_payload_with_flag)
 
     return {"ok": True}
 
@@ -112,28 +134,61 @@ def broadcast(headers, body, cookies):
     channel = data.get("channel", "global")
     message = data["message"]
 
+    msg_payload = {
+        "type": "broadcast",
+        "from": username,
+        "channel": channel,
+        "message": message,
+        "timestamp": time.time()
+    }
+
+    # Gửi P2P đến tất cả peers
     peers = tracker.get_peer_list(channel)
     for p in peers:
-        P2PClient.send(p, {
-            "type": "broadcast",
-            "from": username,
-            "channel": channel,
-            "message": message,
-            "timestamp": time.time()
-        })
+        P2PClient.send(p, msg_payload)
+
+    # Lưu tin nhắn của chính mình với flag 'sent' để UI biết
+    msg_payload_with_flag = msg_payload.copy()
+    msg_payload_with_flag["sent"] = True
+    channel_manager.add_message(channel, msg_payload_with_flag)
 
     return {"ok": True}
 
 
 
+# @app.route("/", methods=["GET"])
+# def index(headers, body, cookies):
+#     with open("index.html") as f:
+#         return {
+#             "status": 200,
+#             "headers": {"Content-Type": "text/html"},
+#             "body": f.read()
+#         }
+
+
 @app.route("/", methods=["GET"])
 def index(headers, body, cookies):
-    with open("index.html") as f:
-        return {
-            "status": 200,
-            "headers": {"Content-Type": "text/html"},
-            "body": f.read()
-        }
+    # Debug: in ra cookies nhận được
+    print(f"[DEBUG] Cookies received at /: {cookies}")
+    
+    port = os.environ.get("PEER_PORT", "9001")
+    html_file = f"index_{port}.html"
+    
+    try:
+        with open(html_file) as f:
+            return {
+                "status": 200,
+                "headers": {"Content-Type": "text/html"},
+                "html": f.read()
+            }
+    except FileNotFoundError:
+        with open("index.html") as f:
+            return {
+                "status": 200,
+                "headers": {"Content-Type": "text/html"},
+                "html": f.read()
+            }
+
 
 
 @app.route("/messages", methods=["GET"])

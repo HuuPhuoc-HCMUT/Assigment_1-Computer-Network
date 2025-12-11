@@ -39,9 +39,29 @@ class HttpAdapter:
             return
 
         # -----------------------
+        # 0. CORS Preflight (OPTIONS)
+        # -----------------------
+        if req.method == "OPTIONS":
+            # Lấy Origin từ request header để response chính xác
+            origin = req.headers.get("origin", "*")
+            
+            response = (
+                "HTTP/1.1 204 No Content\r\n"
+                f"Access-Control-Allow-Origin: {origin}\r\n"
+                "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n"
+                "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
+                "Access-Control-Allow-Credentials: true\r\n"
+                "Access-Control-Max-Age: 86400\r\n"
+                "Connection: close\r\n\r\n"
+            ).encode()
+            conn.sendall(response)
+            conn.close()
+            return
+
+        # -----------------------
         # 1. Nếu là API (HOOK)
         # -----------------------
-        print("đã đến được Hook của httpadapter")
+        print(f"[DEBUG] Method={req.method} Path={req.path} Hook={req.hook}")
         if req.hook:
             try:
                 # result = req.hook(headers=req.headers, body=req.body)
@@ -88,11 +108,13 @@ class HttpAdapter:
                     # ---- 2.5 Custom headers (CORS, etc.) ----
                     headers_dict = result.get("headers", {})
 
-                    # Bổ sung CORS mặc định nếu chưa có
+                    # Bổ sung CORS mặc định nếu chưa có (hỗ trợ credentials/cookie)
                     if "Access-Control-Allow-Origin" not in headers_dict:
-                        headers_dict["Access-Control-Allow-Origin"] = "*"
+                        origin = req.headers.get("origin", "*")
+                        headers_dict["Access-Control-Allow-Origin"] = origin
                         headers_dict["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
                         headers_dict["Access-Control-Allow-Headers"] = "Content-Type"
+                        headers_dict["Access-Control-Allow-Credentials"] = "true"
 
                     custom_headers = ""
                     for k, v in headers_dict.items():
@@ -135,13 +157,15 @@ class HttpAdapter:
                 #     return
 
                 elif isinstance(result, str):
+                    origin = req.headers.get("origin", "*")
                     body = result.encode("utf-8")
                     header = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: text/plain\r\n"
-                        "Access-Control-Allow-Origin: *\r\n"
+                        f"Access-Control-Allow-Origin: {origin}\r\n"
                         "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
                         "Access-Control-Allow-Headers: Content-Type\r\n"
+                        "Access-Control-Allow-Credentials: true\r\n"
                         f"Content-Length: {len(body)}\r\n"
                         "Connection: close\r\n\r\n"
                     ).encode()
@@ -161,13 +185,15 @@ class HttpAdapter:
                 #     return
 
                 elif isinstance(result, list):
+                    origin = req.headers.get("origin", "*")
                     body = json.dumps(result).encode("utf-8")
                     header = (
                         "HTTP/1.1 200 OK\r\n"
                         "Content-Type: application/json\r\n"
-                        "Access-Control-Allow-Origin: *\r\n"
+                        f"Access-Control-Allow-Origin: {origin}\r\n"
                         "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
                         "Access-Control-Allow-Headers: Content-Type\r\n"
+                        "Access-Control-Allow-Credentials: true\r\n"
                         f"Content-Length: {len(body)}\r\n"
                         "Connection: close\r\n\r\n"
                     ).encode()

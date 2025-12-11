@@ -39,7 +39,7 @@ class TrackerClient:
         self.username = username
         self.password = password
 
-        r = requests.put(
+        r = requests.post(
             f"{self.base_url}/login",
             json={"username": username, "password": password}
         )
@@ -189,12 +189,10 @@ class P2PServer(threading.Thread):
                 print(f"\n[{channel}] {msg['from']}: {msg['message']}")
 
             elif msg["type"] == "direct":
+                # Lưu vào channel của người gửi (để hiển thị khi mở chat với họ)
                 channel = f"dm:{msg['from']}"
                 self.channel_manager.add_message(channel, msg)
-
-
-            # elif msg["type"] == "direct":
-            #     print(f"\n[DM] {msg['from']}: {msg['message']}")
+                print(f"\n[DM from {msg['from']}]: {msg['message']}")
 
 
         except Exception as e:
